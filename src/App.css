@@ -1,0 +1,104 @@
+// প্রয়োজনীয় প্যাকেজগুলি ইম্পোর্ট করা
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
+const app = express();
+const port = process.env.PORT || 5000;
+
+// Middleware সেটআপ
+app.use(cors()); // CORS সক্রিয় করা হয়
+app.use(express.json()); // ইনকামিং JSON ডেটা পার্স করতে ব্যবহৃত হয়
+
+// MongoDB সংযোগ স্ট্রিং এবং ক্লায়েন্ট তৈরি
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.8kzkr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+console.log(uri);
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  }
+});
+
+// MongoDB সার্ভারের সাথে সংযোগ এবং রাউটগুলি সেটআপ
+async function run() {
+  try {
+    // সার্ভারের সাথে সংযোগ স্থাপন করা (v4.7 থেকে ঐচ্ছিক)
+    await client.connect();
+
+    const coffeeCollection = client.db('coffeeDB').collection('coffee');
+
+    // সমস্ত কফি ডেটা ফেরত দেয়
+    app.get('/coffee', async (req, res) => {
+      const cursor = coffeeCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // নির্দিষ্ট আইডির কফি ডেটা ফেরত দেয়
+    app.get('/coffee/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await coffeeCollection.findOne(query);
+      res.send(result);
+    });
+
+    // নতুন কফি ডেটা যোগ করে
+    app.post('/coffee', async (req, res) => {
+      const newCoffee = req.body;
+      console.log(JSON.stringify(newCoffee));
+      const result = await coffeeCollection.insertOne(newCoffee);
+      res.send(result);
+    });
+
+    // নির্দিষ্ট আইডির কফি ডেটা আপডেট করে
+    app.put('/coffee/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateCoffee = req.body;
+      const coffee = {
+        $set: {
+          name: updateCoffee.name,
+          quantity: updateCoffee.quantity,
+          supplier: updateCoffee.supplier,
+          taste: updateCoffee.taste,
+          category: updateCoffee.category,
+          details: updateCoffee.details,
+          photo: updateCoffee.photo,
+        },
+      };
+      const result = await coffeeCollection.updateOne(filter, coffee, options);
+      res.send(result);
+    });
+
+    // নির্দিষ্ট আইডির কফি ডেটা মুছে ফেলে
+    app.delete('/coffee/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await coffeeCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // সফল সংযোগ নিশ্চিত করতে একটি পিং পাঠানো
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // নিশ্চিত করে যে ক্লায়েন্টটি বন্ধ হবে যখন আপনি শেষ করবেন/ত্রুটি হবে
+    // await client.close();
+  }
+}
+run().catch(console.dir);
+
+// মূল রুট যা একটি বার্তা ফেরত দেয়
+app.get('/', (req, res) => {
+  res.send('Coffee making server is running');
+});
+
+// সার্ভারটি নির্দিষ্ট পোর্টে লিসেন করে
+app.listen(port, () => {
+  console.log(`Coffee Server is running on port: ${port}`);
+});

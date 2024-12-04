@@ -72,3 +72,4 @@ const CoffeeCard = ({ coffee, coffees, setCoffees }) => {
 };
 
 export default CoffeeCard;
+
