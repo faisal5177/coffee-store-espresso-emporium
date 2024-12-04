@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { FaArrowLeftLong } from "react-icons/fa6";
+import Swal from "sweetalert2";
 
 const AddCoffee = () => {
   const handleAddCoffee = (event) => {
@@ -27,24 +28,32 @@ const AddCoffee = () => {
     };
     console.log(newCoffee);
     // send data to the server
-    fetch('http://localhost:5000/coffee',{
-        method: 'post',
-        header: {
-            'content-type' : 'application/json'
-        },
-        body: JSON.stringify(newCoffee)
+    fetch("http://localhost:5000/coffee", {
+      method: "post",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(newCoffee),
     })
-    .then(res => res.json())
-    .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         console.log(data);
-    })
+        if (data.insertedId) {
+          Swal.fire({
+            title: "success",
+            text: "User Added Successfully",
+            icon: "success",
+            confirmButtonText: "Cool",
+          });
+        }
+      });
   };
 
   return (
     <div>
       <div>
         <Link to="/" className="font-rancho font-bold text-lg flex">
-        <FaArrowLeftLong  className="mr-3 ml-2 mt-1"/>
+          <FaArrowLeftLong className="mr-3 ml-2 mt-1" />
           Back To home
         </Link>
       </div>
